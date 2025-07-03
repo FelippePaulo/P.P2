@@ -8,9 +8,6 @@
 
 #define SIZE 400000
 
-// Descomente para debug
-//#define __DEBUG__
-
 enum implementations_enum {
     TYPE_SERIAL = 1,
     TYPE_PARALLEL
@@ -94,7 +91,7 @@ int main(int argc, char **argv) {
     omp_set_num_threads(2);
     printf("\nRunning parallel MergeSort (2 threads)...");
     start = omp_get_wtime();
-    MergeSort_parallel(vector_2, 0, SIZE - 1, 1); // depth=1 para 2 threads
+    MergeSort_parallel(vector_2, 0, SIZE - 1, 1); 
     end = omp_get_wtime();
     time_parallel_2 = end - start;
     printf("\nParallel time (2 threads): %.6f seconds\n", time_parallel_2);
@@ -109,7 +106,7 @@ int main(int argc, char **argv) {
     omp_set_num_threads(4);
     printf("\nRunning parallel MergeSort (4 threads)...");
     start = omp_get_wtime();
-    MergeSort_parallel(vector_4, 0, SIZE - 1, 2); // depth=2 para 4 threads
+    MergeSort_parallel(vector_4, 0, SIZE - 1, 2); 
     end = omp_get_wtime();
     time_parallel_4 = end - start;
     printf("\nParallel time (4 threads): %.6f seconds\n", time_parallel_4);

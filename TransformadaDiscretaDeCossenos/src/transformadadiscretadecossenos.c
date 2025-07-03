@@ -7,11 +7,8 @@
 #include <math.h>
 #include <string.h>
 
-#define SIZE 10000
+#define SIZE 200000
 #define PI 3.14159265358979323846
-
-// Descomente para debug
-//#define __DEBUG__
 
 enum implementations_enum {
     TYPE_SERIAL = 1,
@@ -19,29 +16,26 @@ enum implementations_enum {
 };
 
 void DCT1D_serial(const double *input, double *output, long int N) {
-    double ck = 1.0; // Fator de normalização para k=0
+    double ck = 1.0;
     
     for (long int k = 0; k < N; k++) {
-        if (k > 0) ck = sqrt(2.0/N); // Fator de normalização para k>0
-        else ck = sqrt(1.0/N);        // Fator especial para k=0
+        if (k > 0) ck = sqrt(2.0/N); 
+        else ck = sqrt(1.0/N);        
         
         double sum = 0.0;
         for (long int n = 0; n < N; n++) {
             sum += input[n] * cos(PI * (n + 0.5) * k / N);
         }
         output[k] = ck * sum;
-        
     }
 }
 
 void DCT1D_parallel(const double *input, double *output, long int N) {
-    // Paraleliza o loop externo (cada k pode ser calculado independentemente)
     #pragma omp parallel for
     for (long int k = 0; k < N; k++) {
         double ck = (k == 0) ? sqrt(1.0/N) : sqrt(2.0/N);
         double sum = 0.0;
         
-        // Loop interno não paralelizado (cada thread calcula seu próprio k)
         for (long int n = 0; n < N; n++) {
             sum += input[n] * cos(PI * (n + 0.5) * k / N);
         }

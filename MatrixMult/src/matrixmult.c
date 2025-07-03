@@ -87,7 +87,6 @@ int main(int argc, char ** argv){
         printf("\nLoading Matrix 2 from file ...");
         m2 = load_double_matrix("m2.dat", NLINES, NCOLS);
     }
-    // Serial
     double start, end, time_serial = 0, time_parallel_2 = 0, time_parallel_4 = 0;
     printf("\nRunning serial implementation ...");
     start = omp_get_wtime();
@@ -98,7 +97,6 @@ int main(int argc, char ** argv){
     save_double_matrix(mR_serial, NLINES, NCOLS, "mR_serial.dat");
 
     printf("\n----------------------------------------------\n");
-    // Paralelo 2 threads
     omp_set_num_threads(2);
     printf("\nRunning parallel implementation (2 threads) ...");
     start = omp_get_wtime();
@@ -113,7 +111,6 @@ int main(int argc, char ** argv){
     printf("\nEficiência (2 threads): %.3f", eficiencia_2);
 
     printf("\n----------------------------------------------\n");
-    // Paralelo 4 threads
     omp_set_num_threads(4);
     printf("\nRunning parallel implementation (4 threads) ...");
     start = omp_get_wtime();
@@ -127,7 +124,6 @@ int main(int argc, char ** argv){
     printf("\nSpeedup (4 threads): %.3f", speedup_4);
     printf("\nEficiência (4 threads): %.3f", eficiencia_4);
 
-    // Comparação dos resultados
     printf("\nComparing parallel results with serial...");
     int matrixes_are_equal_2 = compare_double_matrixes_on_files(
         "mR_serial.dat",

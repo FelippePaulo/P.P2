@@ -8,7 +8,7 @@
 #include <stdbool.h>
 
 // Defina aqui o tamanho do vetor
-#define SIZE 400000
+#define SIZE 10000
 
 // Descomente para debug
 //#define __DEBUG__
@@ -64,6 +64,8 @@ void BubbleSort_parallel(double *array, long int size) {
 
     } while (swapped);
 }
+
+
 int main(int argc, char **argv) {
     srand(time(NULL));
 
