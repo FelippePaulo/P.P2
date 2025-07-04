@@ -21,26 +21,40 @@ enum implementations_enum {
 void BubbleSort_serial(double *array, long int size) {
     int swapped;
     long int n = size;
+
     do {
         swapped = 0;
+
         for (long int i = 0; i < n - 1; i++) {
+            // Dependência de dados:
+            // A comparação e possível troca de array[i] e array[i+1]
+            // afeta diretamente a próxima iteração do loop.
             if (array[i] > array[i + 1]) {
+                // Região crítica (se paralelizado):
+                // Troca de elementos compartilhados entre iterações.
                 double temp = array[i];
                 array[i] = array[i + 1];
                 array[i + 1] = temp;
+
                 swapped = 1;
             }
         }
-        n--; // Reduz o limite a cada passagem
+
+        n--; // Redução do limite de iteração a cada passo
+
     } while (swapped);
 }
+
 
 void BubbleSort_parallel(double *array, long int size) {
     bool swapped;
     do {
         swapped = false;
 
-        // Fase 1: Pares (even)
+        // Fase 1: percorre os pares
+        // Cada thread cuida de um par distinto, então não há risco de duas threads
+        // acessarem ou alterarem as mesmas posições.
+        // O uso de 'reduction' garante que a variável 'swapped' seja atualizada corretamente.
         #pragma omp parallel for shared(array) reduction(||:swapped) schedule(static)
         for (long int i = 0; i < size - 1; i += 2) {
             if (array[i] > array[i + 1]) {
@@ -51,7 +65,8 @@ void BubbleSort_parallel(double *array, long int size) {
             }
         }
 
-        // Fase 2: Ímpares (odd)
+        // Fase 2: percorre os pares começando do índice ímpar (1, 3, 5, ...)
+        // Mesmo esquema da fase anterior, mas deslocado para cobrir os pares que ficaram de fora.
         #pragma omp parallel for shared(array) reduction(||:swapped) schedule(static)
         for (long int i = 1; i < size - 1; i += 2) {
             if (array[i] > array[i + 1]) {
@@ -62,8 +77,12 @@ void BubbleSort_parallel(double *array, long int size) {
             }
         }
 
+        // Observação: o loop externo (do-while) **não pode** ser paralelizado,
+        // pois o estado do vetor depende das trocas feitas na iteração anterior.
+        // Ou seja, existe uma dependência de dados entre as rodadas do loop principal.
     } while (swapped);
 }
+
 
 
 int main(int argc, char **argv) {

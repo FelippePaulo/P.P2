@@ -15,34 +15,42 @@ enum implementations_enum {
     TYPE_PARALLEL
 };
 
-void DCT1D_serial(const double *input, double *output, long int N) {
-    double ck = 1.0;
-    
-    for (long int k = 0; k < N; k++) {
-        if (k > 0) ck = sqrt(2.0/N); 
-        else ck = sqrt(1.0/N);        
-        
-        double sum = 0.0;
-        for (long int n = 0; n < N; n++) {
-            sum += input[n] * cos(PI * (n + 0.5) * k / N);
-        }
-        output[k] = ck * sum;
-    }
-}
-
 void DCT1D_parallel(const double *input, double *output, long int N) {
+    // Não há compartilhamento entre as iterações
     #pragma omp parallel for
     for (long int k = 0; k < N; k++) {
         double ck = (k == 0) ? sqrt(1.0/N) : sqrt(2.0/N);
         double sum = 0.0;
-        
+
+        // Este loop é sequencial e calcula a soma acumulada para o índice k.
+        // Há dependência de dados apenas dentro da variável `sum`, que é local da thread.
         for (long int n = 0; n < N; n++) {
             sum += input[n] * cos(PI * (n + 0.5) * k / N);
         }
-        
+
+        // cada thread escreve em uma posição exclusiva de `output[k]`.
         output[k] = ck * sum;
     }
 }
+
+
+void DCT1D_parallel(const double *input, double *output, long int N) {
+    // Cada iteração calcula um valor exclusivo de output[k].
+    #pragma omp parallel for
+    for (long int k = 0; k < N; k++) {
+        double ck = (k == 0) ? sqrt(1.0/N) : sqrt(2.0/N);
+
+        double sum = 0.0;
+        // Dependência de dados dentro da variável local 'sum'.
+        // Não há conflito, pois cada thread possui sua própria cópia dessa variável.
+        for (long int n = 0; n < N; n++) {
+            sum += input[n] * cos(PI * (n + 0.5) * k / N);
+        }
+
+        output[k] = ck * sum;
+    }
+}
+
 
 int main(int argc, char **argv) {
     srand(time(NULL));

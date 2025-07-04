@@ -16,6 +16,8 @@ enum implementations_enum {
 void merge(double *array, long int left, long int mid, long int right) {
     long int n1 = mid - left + 1;
     long int n2 = right - mid;
+
+    // Criação de vetores auxiliares (sem dependência compartilhada)
     double *L = (double*)malloc(n1 * sizeof(double));
     double *R = (double*)malloc(n2 * sizeof(double));
     for (long int i = 0; i < n1; i++)
@@ -23,10 +25,17 @@ void merge(double *array, long int left, long int mid, long int right) {
     for (long int j = 0; j < n2; j++)
         R[j] = array[mid + 1 + j];
     long int i = 0, j = 0, k = left;
+
+    // Dependência de dados:
+    // Escrita sequencial em array[k], que depende da comparação entre L[i] e R[j].
+    // Cada posição de k é escrita uma única vez, então não há corrida de dados aqui
+    // **se cada thread trabalhar em blocos distintos**.
     while (i < n1 && j < n2) {
         if (L[i] <= R[j]) array[k++] = L[i++];
         else array[k++] = R[j++];
     }
+
+    // Continua preenchendo array[k] com elementos restantes
     while (i < n1) array[k++] = L[i++];
     while (j < n2) array[k++] = R[j++];
     free(L);
@@ -36,8 +45,14 @@ void merge(double *array, long int left, long int mid, long int right) {
 void MergeSort_serial(double *array, long int left, long int right) {
     if (left < right) {
         long int mid = left + (right - left) / 2;
+
+        // Recursão à esquerda e à direita não têm dependência de dados entre si
         MergeSort_serial(array, left, mid);
         MergeSort_serial(array, mid + 1, right);
+
+        // Região crítica (se paralelizado):
+        // A fusão modifica array[left...right], portanto só pode ser feita
+        // após ambas as chamadas terminarem.
         merge(array, left, mid, right);
     }
 }
@@ -45,10 +60,15 @@ void MergeSort_serial(double *array, long int left, long int right) {
 void MergeSort_parallel(double *array, long int left, long int right, int depth) {
     if (left < right) {
         long int mid = left + (right - left) / 2;
+
         if (depth <= 0) {
+            // Sem paralelismo: execução recursiva em série
             MergeSort_serial(array, left, mid);
             MergeSort_serial(array, mid + 1, right);
         } else {
+            // As duas seções abaixo não possuem dependência de dados entre si:
+            // Ambas operam em regiões distintas do vetor (left..mid e mid+1..right)
+            // Portanto, podem ser executadas em paralelo.
 #pragma omp parallel sections
             {
 #pragma omp section
@@ -57,9 +77,12 @@ void MergeSort_parallel(double *array, long int left, long int right, int depth)
                 MergeSort_parallel(array, mid + 1, right, depth - 1);
             }
         }
+
+        // Região crítica:
         merge(array, left, mid, right);
     }
 }
+
 
 int main(int argc, char **argv) {
     srand(time(NULL));
@@ -91,7 +114,7 @@ int main(int argc, char **argv) {
     omp_set_num_threads(2);
     printf("\nRunning parallel MergeSort (2 threads)...");
     start = omp_get_wtime();
-    MergeSort_parallel(vector_2, 0, SIZE - 1, 1); 
+    MergeSort_parallel(vector_2, 0, SIZE - 1, 1);
     end = omp_get_wtime();
     time_parallel_2 = end - start;
     printf("\nParallel time (2 threads): %.6f seconds\n", time_parallel_2);
@@ -106,7 +129,7 @@ int main(int argc, char **argv) {
     omp_set_num_threads(4);
     printf("\nRunning parallel MergeSort (4 threads)...");
     start = omp_get_wtime();
-    MergeSort_parallel(vector_4, 0, SIZE - 1, 2); 
+    MergeSort_parallel(vector_4, 0, SIZE - 1, 2);
     end = omp_get_wtime();
     time_parallel_4 = end - start;
     printf("\nParallel time (4 threads): %.6f seconds\n", time_parallel_4);

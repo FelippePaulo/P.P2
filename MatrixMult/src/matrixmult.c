@@ -14,58 +14,61 @@
 #define NLINES 1000
 #define NCOLS 1000
 
-// Descomente esta linha abaixo para imprimir valores das matrizes 
+// Descomente esta linha abaixo para imprimir valores das matrizes
 //#define __DEBUG__
 
 enum implementations_enum {
-	TYPE_SERIAL = 1, 
+	TYPE_SERIAL = 1,
 	TYPE_PARALLEL
 } ;
 
 double *MatrixMult_serial(const double *m1, const double *m2){
 
-	double *mR = (double*)malloc(
-		sizeof(double) * NLINES * NCOLS);
+    double *mR = (double*)malloc(sizeof(double) * NLINES * NCOLS);
 
-	for ( long int i = 0; i < NLINES; i++ ){
+    for (long int i = 0; i < NLINES; i++) {
+        for (long int j = 0; j < NCOLS; j++) {
 
-		for ( long int j = 0; j < NCOLS; j++ ){
+            M(i, j, NCOLS, mR) = 0;
 
-			// Utilize esta macro abaixo para acessar valores de matrizes em C
-			M( i , j , NCOLS, mR) = 0;
+            for (long int k = 0; k < NCOLS; k++) {
+                // Dependência de dados ocorre dentro da variável mR[i][j]:
+                // A cada iteração, o valor acumulado de mR[i][j] depende do valor anterior.
+                M(i, j, NCOLS, mR) +=
+                    M(i, k, NCOLS, m1) * M(k, j, NCOLS, m2);
+            }
 
-			for (long int k = 0; k < NCOLS; k++ ){
+        }
+    }
 
-				M(i, j, NCOLS, mR) += 
-					M( i , k , NCOLS, m1) * M( k , j , NCOLS, m2);
-
-			}
-
-		}
-	}
-	
-	return mR;
+    return mR;
 }
 
 
-double *MatrixMult_parallel(const double *m1, const double *m2){
+double *MatrixMult_parallel(const double *m1, const double *m2) {
+    double *mR = (double*)malloc(sizeof(double) * NLINES * NCOLS);
 
-	double *mR = (double*)malloc(
-		sizeof(double) * NLINES * NCOLS);
+    // Cada thread trabalha com pares (i, j) diferentes.
+    #pragma omp parallel for collapse(2)
+    for (long int i = 0; i < NLINES; i++) {
+        for (long int j = 0; j < NCOLS; j++) {
 
-	#pragma omp parallel for collapse(2)
-	for ( long int i = 0; i < NLINES; i++ ){
-		for ( long int j = 0; j < NCOLS; j++ ){
-			
-			M( i , j , NCOLS, mR) = 0;
-			for (long int k = 0; k < NCOLS; k++ ){
-				M(i, j, NCOLS, mR) += 
-					M( i , k , NCOLS, m1) * M( k , j , NCOLS, m2);
-			}
-		}
-	}
-	return mR;
+            // Cada thread escreve em uma célula exclusiva de mR[i][j], então não há região crítica
+            M(i, j, NCOLS, mR) = 0;
+
+            for (long int k = 0; k < NCOLS; k++) {
+                // Dependência de dados **interna** de mR[i][j]:
+                // O loop depende do valor anterior de mR[i][j].
+                M(i, j, NCOLS, mR) +=
+                    M(i, k, NCOLS, m1) * M(k, j, NCOLS, m2);
+            }
+
+        }
+    }
+
+    return mR;
 }
+
 
 
 int main(int argc, char ** argv){
